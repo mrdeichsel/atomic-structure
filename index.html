@@ -12,45 +12,55 @@
             font-family: 'Courier New', Courier, monospace;
             display: inline-grid;
             grid-template-areas: "mass symbol charge" "atomic symbol .";
-            gap: 0px 6px; align-items: center; justify-content: center;
+            gap: 2px 8px; align-items: center; justify-content: center;
         }
-        .mass-num { grid-area: mass; text-align: right; font-size: 1.1rem; min-width: 1.2rem; line-height: 1; }
-        .atomic-num { grid-area: atomic; text-align: right; font-size: 1.1rem; min-width: 1.2rem; line-height: 1; }
-        .chem-symbol { grid-area: symbol; font-size: 3rem; font-weight: bold; line-height: 1; }
-        .net-charge { grid-area: charge; font-size: 1.1rem; align-self: start; padding-top: 2px; min-width: 1.2rem; text-align: left; }
+        .mass-num { grid-area: mass; text-align: right; font-size: 1.25rem; min-width: 3.5rem; line-height: 1; }
+        .atomic-num { grid-area: atomic; text-align: right; font-size: 1.25rem; min-width: 3.5rem; line-height: 1; }
+        .chem-symbol { grid-area: symbol; font-size: 3.5rem; font-weight: bold; line-height: 1; }
+        .net-charge { grid-area: charge; font-size: 1.25rem; align-self: start; padding-top: 2px; min-width: 2.5rem; text-align: left; }
 
+        /* Input Styling */
         .challenge-input {
-            background: #ffffff;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 4px;
+            background: transparent;
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
             text-align: center;
             width: 100%;
             transition: all 0.2s;
             color: #1e293b;
-            font-size: 0.9rem;
+            font-size: 1rem;
+            font-weight: bold;
+            padding: 4px 0;
         }
-        .challenge-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); }
-        .challenge-input::placeholder { color: #94a3b8; font-size: 0.7rem; }
+        .challenge-input:focus { outline: none; border-color: #3b82f6; background: white; }
+        .challenge-input::placeholder { color: #94a3b8; font-size: 0.75rem; font-weight: normal; }
         
-        .input-correct { border-color: #22c55e !important; background: #f0fdf4 !important; color: #15803d !important; }
-        .input-warning { border-color: #f59e0b !important; background: #fffbeb !important; color: #b45309 !important; }
-        .input-error { border-color: #ef4444 !important; background: #fef2f2 !important; color: #b91c1c !important; }
+        /* Shaded Parent Container Logic */
+        .cell-warning { background-color: #fffbeb !important; border-color: #d97706 !important; }
+        .cell-error { 
+            background-color: #fef2f2 !important; 
+            border-color: #dc2626 !important; 
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        .input-correct { border-color: #cbd5e1 !important; color: #1e293b !important; } /* Reset to neutral */
+        .input-warning { border-color: #d97706 !important; color: #92400e !important; }
+        .input-error { border-color: #dc2626 !important; color: #991b1b !important; }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+            40%, 60% { transform: translate3d(3px, 0, 0); }
+        }
 
         canvas { max-width: 100%; height: auto; transition: opacity 0.3s ease; }
-        .control-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); }
+        .control-panel { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(8px); }
         .toggle-active { background-color: #1e293b; color: white; }
         
-        @keyframes correct-pop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        .correct-anim { animation: correct-pop 0.3s ease-out; }
-
-        .btn-particle-control:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            background-color: #f1f5f9 !important;
+        .score-box {
+            background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         #challenge-focus-area {
@@ -61,7 +71,17 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 1rem;
+            padding: 2rem;
+        }
+
+        .input-wrapper {
+            padding: 4px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
 </head>
@@ -69,77 +89,94 @@
     <div class="max-w-[1400px] mx-auto">
         <header class="flex flex-row justify-between items-center mb-4 px-2">
             <div class="flex items-center gap-3">
-                <h1 class="text-2xl font-black text-slate-800 tracking-tight">ACHS Chemistry</h1>
-                <span id="challenge-badge" class="hidden bg-red-600 text-white px-2 py-0.5 rounded-full text-[10px] font-black animate-pulse uppercase">Challenge</span>
+                <h1 class="text-2xl font-black text-slate-800 tracking-tight">ACHS Chemistry Atomic Structure</h1>
+                <span id="challenge-badge" class="hidden bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black animate-pulse uppercase">Challenge Active</span>
             </div>
-            <div class="flex bg-slate-200 p-0.5 rounded-full shadow-inner w-48 border border-slate-300">
-                <button id="btn-explore" onclick="setMode('explore')" class="flex-1 py-1 rounded-full text-xs font-bold transition-all toggle-active">Explore</button>
-                <button id="btn-challenge" onclick="setMode('challenge')" class="flex-1 py-1 rounded-full text-xs font-bold transition-all text-slate-500">Challenge</button>
+            <div class="flex items-center gap-4">
+                <div id="score-container" class="hidden flex gap-2">
+                    <div class="score-box px-4 py-1.5 rounded-xl text-white border border-slate-700">
+                        <p class="text-[8px] uppercase font-bold text-slate-400">Total Solved</p>
+                        <p id="stat-solved" class="text-xl font-black leading-none">0</p>
+                    </div>
+                    <div class="score-box px-4 py-1.5 rounded-xl text-white border border-slate-700">
+                        <p class="text-[8px] uppercase font-bold text-slate-400">Streak</p>
+                        <p id="stat-streak" class="text-xl font-black leading-none text-orange-400">0</p>
+                    </div>
+                </div>
+                <div class="flex bg-slate-200 p-0.5 rounded-full shadow-inner w-48 border border-slate-300">
+                    <button id="btn-explore" onclick="setMode('explore')" class="flex-1 py-1 rounded-full text-xs font-bold transition-all toggle-active">Explore</button>
+                    <button id="btn-challenge" onclick="setMode('challenge')" class="flex-1 py-1 rounded-full text-xs font-bold transition-all text-slate-500">Challenge</button>
+                </div>
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
-            <div id="main-display-container" class="lg:col-span-9 bg-white p-2 rounded-2xl shadow-lg border border-slate-200 relative flex items-center justify-center min-h-[500px]">
-                
+            <div id="main-display-container" class="lg:col-span-9 bg-white p-2 rounded-2xl shadow-lg border border-slate-200 relative flex items-center justify-center min-h-[550px]">
                 <div id="challenge-focus-area">
-                    <div class="bg-slate-50 p-8 rounded-2xl border-2 border-dashed border-slate-200">
-                        <h3 class="text-lg font-bold text-slate-800 mb-1">Theoretical Analysis Mode</h3>
-                        <p class="text-xs text-slate-500 max-w-sm">Solve for the missing atomic data using clues in the panel and table.</p>
+                    <div class="bg-slate-50 p-12 rounded-3xl border-4 border-dotted border-slate-200 max-w-lg">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-black text-slate-800 mb-2">Theoretical Analysis Mode</h3>
+                        <p class="text-sm text-slate-500">Solve for the missing atomic data using clues in the notation and data table.</p>
                     </div>
                 </div>
 
-                <div id="main-control-panel" class="control-panel absolute top-4 left-4 p-4 rounded-xl shadow-xl border border-slate-200 flex flex-col gap-3 z-10 w-64">
+                <div id="main-control-panel" class="control-panel absolute top-4 left-4 p-5 rounded-2xl shadow-2xl border border-slate-200 flex flex-col gap-4 z-10 w-72">
                     <div class="text-center">
-                        <h2 id="element-name" class="text-xl font-black text-blue-600 uppercase tracking-tight leading-tight">Empty Space</h2>
-                        <div id="isotope-display-area" class="mt-0.5 h-6 flex flex-col items-center justify-center"></div>
-                        <p class="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Element Identity</p>
+                        <h2 id="element-name" class="text-2xl font-black text-blue-600 uppercase tracking-tight leading-tight">Empty Space</h2>
+                        <div id="isotope-display-area" class="mt-1 h-6 flex flex-col items-center justify-center"></div>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Element Identity</p>
                     </div>
 
-                    <div class="py-1 border-y border-slate-100 flex justify-center">
+                    <div class="py-4 border-y border-slate-100 flex justify-center bg-slate-50/50 rounded-xl">
                         <div class="nuclear-symbol-container">
-                            <div id="sym-mass-container" class="mass-num text-slate-500">0</div>
-                            <div id="sym-atomic-container" class="atomic-num text-slate-500">0</div>
-                            <div id="sym-symbol-container" class="chem-symbol text-slate-800">?</div>
-                            <div id="sym-charge-container" class="net-charge text-blue-600"></div>
+                            <div id="sym-mass-container" class="mass-num text-slate-600 input-wrapper">0</div>
+                            <div id="sym-atomic-container" class="atomic-num text-slate-600 input-wrapper">0</div>
+                            <div id="sym-symbol-container" class="chem-symbol text-slate-900 input-wrapper">?</div>
+                            <div id="sym-charge-container" class="net-charge text-blue-600 font-black input-wrapper"></div>
                         </div>
                     </div>
 
-                    <div id="particle-adjust-section" class="space-y-2">
-                        <div id="particle-controls" class="grid grid-cols-3 gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                            <div class="flex flex-col items-center gap-1">
-                                <span class="text-[8px] font-black text-red-600 uppercase">P+</span>
-                                <div id="drag-proton" class="w-8 h-8 rounded-full bg-red-500 shadow flex items-center justify-center text-white font-bold text-base border border-red-600 cursor-grab" draggable="true" ondragstart="drag(event, 'proton')">+</div>
+                    <div id="particle-adjust-section" class="space-y-3">
+                        <div id="particle-controls" class="grid grid-cols-3 gap-2 bg-slate-100/50 p-2 rounded-xl border border-slate-200">
+                            <div class="flex flex-col items-center gap-1.5">
+                                <span class="text-[9px] font-black text-red-600 uppercase">Protons</span>
+                                <div id="drag-proton" class="w-10 h-10 rounded-full bg-red-500 shadow-md flex items-center justify-center text-white font-bold text-lg border-2 border-red-600 cursor-grab hover:scale-110 transition-transform" draggable="true" ondragstart="drag(event, 'proton')">+</div>
                                 <div class="flex items-center gap-1">
-                                    <button onclick="removeParticle('proton')" class="btn-particle-control w-5 h-5 flex items-center justify-center bg-white border border-red-200 text-red-600 rounded text-xs">-</button>
-                                    <span id="count-protons" class="text-xs font-bold text-slate-700">0</span>
-                                    <button onclick="addParticle('proton')" class="btn-particle-control w-5 h-5 flex items-center justify-center bg-white border border-red-200 text-red-600 rounded text-xs">+</button>
+                                    <button onclick="removeParticle('proton')" class="w-6 h-6 flex items-center justify-center bg-white border border-red-200 text-red-600 rounded-md text-xs font-bold shadow-sm">-</button>
+                                    <span id="count-protons" class="text-sm font-black text-slate-700 w-4 text-center">0</span>
+                                    <button onclick="addParticle('proton')" class="w-6 h-6 flex items-center justify-center bg-white border border-red-200 text-red-600 rounded-md text-xs font-bold shadow-sm">+</button>
                                 </div>
                             </div>
-                            <div class="flex flex-col items-center gap-1">
-                                <span class="text-[8px] font-black text-slate-500 uppercase">N0</span>
-                                <div id="drag-neutron" class="w-8 h-8 rounded-full bg-slate-400 shadow flex items-center justify-center text-white font-bold text-base border border-slate-500 cursor-grab" draggable="true" ondragstart="drag(event, 'neutron')">n</div>
+                            <div class="flex flex-col items-center gap-1.5">
+                                <span class="text-[9px] font-black text-slate-500 uppercase">Neutrons</span>
+                                <div id="drag-neutron" class="w-10 h-10 rounded-full bg-slate-400 shadow-md flex items-center justify-center text-white font-bold text-lg border-2 border-slate-500 cursor-grab hover:scale-110 transition-transform" draggable="true" ondragstart="drag(event, 'neutron')">n</div>
                                 <div class="flex items-center gap-1">
-                                    <button onclick="removeParticle('neutron')" class="btn-particle-control w-5 h-5 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded text-xs">-</button>
-                                    <span id="count-neutrons" class="text-xs font-bold text-slate-700">0</span>
-                                    <button onclick="addParticle('neutron')" class="btn-particle-control w-5 h-5 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded text-xs">+</button>
+                                    <button onclick="removeParticle('neutron')" class="w-6 h-6 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-md text-xs font-bold shadow-sm">-</button>
+                                    <span id="count-neutrons" class="text-sm font-black text-slate-700 w-4 text-center">0</span>
+                                    <button onclick="addParticle('neutron')" class="w-6 h-6 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-md text-xs font-bold shadow-sm">+</button>
                                 </div>
                             </div>
-                            <div class="flex flex-col items-center gap-1">
-                                <span class="text-[8px] font-black text-blue-600 uppercase">E-</span>
-                                <div id="drag-electron" class="w-8 h-8 rounded-full bg-blue-400 shadow flex items-center justify-center text-white font-bold text-base border border-blue-500 cursor-grab" draggable="true" ondragstart="drag(event, 'electron')">-</div>
+                            <div class="flex flex-col items-center gap-1.5">
+                                <span class="text-[9px] font-black text-blue-600 uppercase">Electrons</span>
+                                <div id="drag-electron" class="w-10 h-10 rounded-full bg-blue-400 shadow-md flex items-center justify-center text-white font-bold text-lg border-2 border-blue-500 cursor-grab hover:scale-110 transition-transform" draggable="true" ondragstart="drag(event, 'electron')">-</div>
                                 <div class="flex items-center gap-1">
-                                    <button onclick="removeParticle('electron')" class="btn-particle-control w-5 h-5 flex items-center justify-center bg-white border border-blue-200 text-blue-600 rounded text-xs">-</button>
-                                    <span id="count-electrons" class="text-xs font-bold text-slate-700">0</span>
-                                    <button onclick="addParticle('electron')" class="btn-particle-control w-5 h-5 flex items-center justify-center bg-white border border-blue-200 text-blue-600 rounded text-xs">+</button>
+                                    <button onclick="removeParticle('electron')" class="w-6 h-6 flex items-center justify-center bg-white border border-blue-200 text-blue-600 rounded-md text-xs font-bold shadow-sm">-</button>
+                                    <span id="count-electrons" class="text-sm font-black text-slate-700 w-4 text-center">0</span>
+                                    <button onclick="addParticle('electron')" class="w-6 h-6 flex items-center justify-center bg-white border border-blue-200 text-blue-600 rounded-md text-xs font-bold shadow-sm">+</button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex flex-col gap-1.5 pt-1.5 border-t border-slate-100">
-                        <button id="check-answer-btn" onclick="checkCompletion()" class="hidden w-full bg-green-600 text-white py-2 rounded-lg text-xs font-black hover:bg-green-500 shadow transition-all">Check My Work</button>
-                        <button id="next-challenge-btn" onclick="generateChallenge()" class="hidden w-full bg-blue-600 text-white py-2 rounded-lg text-xs font-black hover:bg-blue-500 shadow transition-all">Next Challenge</button>
-                        <button id="reset-btn" onclick="resetAtom()" class="w-full bg-slate-800 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-slate-700 transition-all">Reset / Clear</button>
+                    <div class="flex flex-col gap-2 pt-2 border-t border-slate-100">
+                        <button id="check-answer-btn" onclick="checkCompletion()" class="hidden w-full bg-green-600 text-white py-2.5 rounded-xl text-xs font-black hover:bg-green-500 shadow-lg active:scale-95 transition-all">Check Answer</button>
+                        <button id="next-challenge-btn" onclick="generateChallenge()" class="hidden w-full bg-blue-600 text-white py-2.5 rounded-xl text-xs font-black hover:bg-blue-500 shadow-lg active:scale-95 transition-all">Next Challenge</button>
+                        <button id="reset-btn" onclick="resetAtom()" class="w-full bg-slate-800 text-white py-2 rounded-xl text-xs font-bold hover:bg-slate-700 transition-all">Reset / Clear</button>
+                        <button id="skip-btn" onclick="skipChallenge()" class="hidden w-full bg-slate-400 text-white py-2 rounded-xl text-xs font-bold hover:bg-slate-500 transition-all">Skip Problem</button>
                     </div>
                 </div>
 
@@ -147,42 +184,46 @@
             </div>
 
             <div class="lg:col-span-3 flex flex-col gap-4">
-                <div class="bg-slate-800 p-4 rounded-2xl shadow-lg text-white">
-                    <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Instructions</h2>
-                    <p id="instruction-text" class="text-xs text-slate-300 leading-normal">
+                <div class="bg-slate-800 p-5 rounded-2xl shadow-lg text-white">
+                    <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 border-b border-slate-700 pb-2">Instructions</h2>
+                    <p id="instruction-text" class="text-xs text-slate-300 leading-relaxed">
                         Build an atom using the controls. Protons define the element, neutrons define the isotope, and electrons determine the charge.
                     </p>
-                    <div id="challenge-type-desc" class="mt-3 pt-3 border-t border-slate-700 hidden">
-                        <span class="text-[9px] font-black text-red-400 uppercase tracking-widest block mb-1">Challenge Objective</span>
-                        <p id="challenge-goal" class="text-[10px] font-bold text-white"></p>
+                    <div id="challenge-type-desc" class="mt-4 pt-4 border-t border-slate-700 hidden">
+                        <span class="text-[10px] font-black text-red-400 uppercase tracking-widest block mb-2">Active Challenge</span>
+                        <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700">
+                            <p id="challenge-goal" class="text-[11px] font-bold text-white"></p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="mt-4 bg-white p-4 rounded-2xl shadow-lg border border-slate-200 overflow-x-auto">
-            <div class="flex justify-between items-center mb-2">
+        <div class="mt-4 bg-white p-5 rounded-2xl shadow-xl border border-slate-200">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
                 <div>
-                    <h2 class="text-lg font-black text-slate-800">Detailed Analysis</h2>
-                    <p class="text-[10px] text-slate-500 font-medium">Verify your data in the table below.</p>
+                    <h2 class="text-xl font-black text-slate-800">Atomic Analysis Data</h2>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Cross-reference values to verify identity</p>
                 </div>
-                <div id="feedback-msg" class="text-right h-6 flex items-center font-bold text-[11px]"></div>
+                <div id="feedback-msg" class="text-right h-8 flex items-center font-black text-sm"></div>
             </div>
             
-            <table class="w-full text-center border-collapse">
-                <thead>
-                    <tr class="bg-slate-50">
-                        <th class="p-2 border-b border-slate-200 text-[9px] uppercase text-slate-400 font-black tracking-wider">Isotope Notation</th>
-                        <th class="p-2 border-b border-slate-200 text-[9px] uppercase text-slate-400 font-black tracking-wider">Atomic No. (Z)</th>
-                        <th class="p-2 border-b border-slate-200 text-[9px] uppercase text-slate-400 font-black tracking-wider">Mass No. (A)</th>
-                        <th class="p-2 border-b border-slate-200 text-[9px] uppercase text-slate-400 font-black tracking-wider">Charge</th>
-                        <th class="p-2 border-b border-slate-200 text-[9px] uppercase text-slate-400 font-black tracking-wider">Protons</th>
-                        <th class="p-2 border-b border-slate-200 text-[9px] uppercase text-slate-400 font-black tracking-wider">Neutrons</th>
-                        <th class="p-2 border-b border-slate-200 text-[9px] uppercase text-slate-400 font-black tracking-wider">Electrons</th>
-                    </tr>
-                </thead>
-                <tbody id="analysis-row" class="font-mono text-blue-600 text-lg font-black"></tbody>
-            </table>
+            <div class="overflow-x-auto">
+                <table class="w-full text-center border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50">
+                            <th class="p-3 border-b-2 border-slate-200 text-[10px] uppercase text-slate-400 font-black tracking-widest">Isotope Notation</th>
+                            <th class="p-3 border-b-2 border-slate-200 text-[10px] uppercase text-slate-400 font-black tracking-widest">Atomic No. (Z)</th>
+                            <th class="p-3 border-b-2 border-slate-200 text-[10px] uppercase text-slate-400 font-black tracking-widest">Mass No. (A)</th>
+                            <th class="p-3 border-b-2 border-slate-200 text-[10px] uppercase text-slate-400 font-black tracking-widest">Net Charge</th>
+                            <th class="p-3 border-b-2 border-slate-200 text-[10px] uppercase text-slate-400 font-black tracking-widest">p+</th>
+                            <th class="p-3 border-b-2 border-slate-200 text-[10px] uppercase text-slate-400 font-black tracking-widest">n0</th>
+                            <th class="p-3 border-b-2 border-slate-200 text-[10px] uppercase text-slate-400 font-black tracking-widest">e-</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analysis-row" class="font-mono text-blue-600 text-lg font-black"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -209,148 +250,40 @@
             { z: 18, name: "Argon", symbol: "Ar", mass: 40 },
             { z: 19, name: "Potassium", symbol: "K", mass: 39 },
             { z: 20, name: "Calcium", symbol: "Ca", mass: 40 },
-            { z: 21, name: "Scandium", symbol: "Sc", mass: 45 },
-            { z: 22, name: "Titanium", symbol: "Ti", mass: 48 },
-            { z: 23, name: "Vanadium", symbol: "V", mass: 51 },
-            { z: 24, name: "Chromium", symbol: "Cr", mass: 52 },
-            { z: 25, name: "Manganese", symbol: "Mn", mass: 55 },
             { z: 26, name: "Iron", symbol: "Fe", mass: 56 },
-            { z: 27, name: "Cobalt", symbol: "Co", mass: 59 },
-            { z: 28, name: "Nickel", symbol: "Ni", mass: 58 },
-            { z: 29, name: "Copper", symbol: "Cu", mass: 63 },
-            { z: 30, name: "Zinc", symbol: "Zn", mass: 65 },
-            { z: 31, name: "Gallium", symbol: "Ga", mass: 69 },
-            { z: 32, name: "Germanium", symbol: "Ge", mass: 72 },
-            { z: 33, name: "Arsenic", symbol: "As", mass: 75 },
-            { z: 34, name: "Selenium", symbol: "Se", mass: 79 },
-            { z: 35, name: "Bromine", symbol: "Br", mass: 79 },
-            { z: 36, name: "Krypton", symbol: "Kr", mass: 84 },
-            { z: 37, name: "Rubidium", symbol: "Rb", mass: 85 },
-            { z: 38, name: "Strontium", symbol: "Sr", mass: 88 },
-            { z: 39, name: "Yttrium", symbol: "Y", mass: 89 },
-            { z: 40, name: "Zirconium", symbol: "Zr", mass: 91 },
+            { z: 35, name: "Bromine", symbol: "Br", mass: 80 },
             { z: 53, name: "Iodine", symbol: "I", mass: 127 },
-            { z: 56, name: "Barium", symbol: "Ba", mass: 138 },
-            { z: 80, name: "Mercury", symbol: "Hg", mass: 200 },
             { z: 82, name: "Lead", symbol: "Pb", mass: 207 }
+        ];
+
+        const isotopeBank = [
+            { p: 1, n: 0, e: 1, name: "Hydrogen" }, { p: 1, n: 1, e: 1, name: "Hydrogen" },
+            { p: 2, n: 1, e: 2, name: "Helium" }, { p: 2, n: 2, e: 2, name: "Helium" },
+            { p: 3, n: 4, e: 3, name: "Lithium" }, { p: 3, n: 3, e: 2, name: "Lithium" },
+            { p: 6, n: 6, e: 6, name: "Carbon" }, { p: 6, n: 8, e: 6, name: "Carbon" },
+            { p: 7, n: 7, e: 7, name: "Nitrogen" }, { p: 7, n: 8, e: 10, name: "Nitrogen" },
+            { p: 8, n: 8, e: 8, name: "Oxygen" }, { p: 8, n: 10, e: 10, name: "Oxygen" },
+            { p: 9, n: 10, e: 10, name: "Fluorine" }, { p: 11, n: 12, e: 10, name: "Sodium" },
+            { p: 12, n: 12, e: 10, name: "Magnesium" }, { p: 13, n: 14, e: 10, name: "Aluminum" },
+            { p: 17, n: 18, e: 18, name: "Chlorine" }, { p: 20, n: 20, e: 18, name: "Calcium" },
+            { p: 26, n: 30, e: 24, name: "Iron" }, { p: 35, n: 45, e: 36, name: "Bromine" },
+            { p: 53, n: 74, e: 54, name: "Iodine" }, { p: 82, n: 125, e: 82, name: "Lead" }
         ];
 
         const commonIonNames = {
             "H": { pos: "Hydrogen Ion", neg: "Hydride" },
-            "Li": { pos: "Lithium Ion" },
-            "Be": { pos: "Beryllium Ion" },
-            "B": { pos: "Boron Ion" },
-            "C": { neg: "Carbide" },
-            "N": { neg: "Nitride" },
-            "O": { neg: "Oxide" },
-            "F": { neg: "Fluoride" },
-            "Na": { pos: "Sodium Ion" },
-            "Mg": { pos: "Magnesium Ion" },
-            "Al": { pos: "Aluminum Ion" },
-            "P": { neg: "Phosphide" },
-            "S": { neg: "Sulfide" },
-            "Cl": { neg: "Chloride" },
-            "K": { pos: "Potassium Ion" },
-            "Ca": { pos: "Calcium Ion" },
-            "Br": { neg: "Bromide" },
+            "O": { neg: "Oxide" }, "F": { neg: "Fluoride" },
+            "Na": { pos: "Sodium Ion" }, "Mg": { pos: "Magnesium Ion" },
+            "Al": { pos: "Aluminum Ion" }, "S": { neg: "Sulfide" },
+            "Cl": { neg: "Chloride" }, "K": { pos: "Potassium Ion" },
+            "Ca": { pos: "Calcium Ion" }, "Br": { neg: "Bromide" },
             "I": { neg: "Iodide" }
         };
-
-        const isotopeBank = [
-            // Z=1: Hydrogen
-            { p: 1, n: 0, e: 1, name: "Hydrogen" }, { p: 1, n: 1, e: 1, name: "Hydrogen" },
-            // Z=2: Helium
-            { p: 2, n: 1, e: 2, name: "Helium" }, { p: 2, n: 2, e: 2, name: "Helium" },
-            // Z=3: Lithium
-            { p: 3, n: 4, e: 3, name: "Lithium" }, { p: 3, n: 3, e: 2, name: "Lithium" },
-            // Z=4: Beryllium
-            { p: 4, n: 5, e: 4, name: "Beryllium" }, { p: 4, n: 6, e: 4, name: "Beryllium" },
-            // Z=5: Boron
-            { p: 5, n: 6, e: 5, name: "Boron" }, { p: 5, n: 5, e: 5, name: "Boron" },
-            // Z=6: Carbon
-            { p: 6, n: 6, e: 6, name: "Carbon" }, { p: 6, n: 8, e: 6, name: "Carbon" },
-            // Z=7: Nitrogen
-            { p: 7, n: 7, e: 7, name: "Nitrogen" }, { p: 7, n: 8, e: 10, name: "Nitrogen" },
-            // Z=8: Oxygen
-            { p: 8, n: 8, e: 8, name: "Oxygen" }, { p: 8, n: 10, e: 8, name: "Oxygen" },
-            // Z=9: Fluorine
-            { p: 9, n: 10, e: 9, name: "Fluorine" }, { p: 9, n: 10, e: 10, name: "Fluorine" },
-            // Z=10: Neon
-            { p: 10, n: 10, e: 10, name: "Neon" }, { p: 10, n: 12, e: 10, name: "Neon" },
-            // Z=11: Sodium
-            { p: 11, n: 12, e: 10, name: "Sodium" }, { p: 11, n: 11, e: 11, name: "Sodium" },
-            // Z=12: Magnesium
-            { p: 12, n: 12, e: 12, name: "Magnesium" }, { p: 12, n: 13, e: 10, name: "Magnesium" },
-            // Z=13: Aluminum
-            { p: 13, n: 14, e: 13, name: "Aluminum" }, { p: 13, n: 14, e: 10, name: "Aluminum" },
-            // Z=14: Silicon
-            { p: 14, n: 14, e: 14, name: "Silicon" }, { p: 14, n: 15, e: 14, name: "Silicon" },
-            // Z=15: Phosphorus
-            { p: 15, n: 16, e: 15, name: "Phosphorus" }, { p: 15, n: 17, e: 12, name: "Phosphorus" },
-            // Z=16: Sulfur
-            { p: 16, n: 16, e: 16, name: "Sulfur" }, { p: 16, n: 18, e: 18, name: "Sulfur" },
-            // Z=17: Chlorine
-            { p: 17, n: 18, e: 18, name: "Chlorine" }, { p: 17, n: 20, e: 17, name: "Chlorine" },
-            // Z=18: Argon
-            { p: 18, n: 22, e: 18, name: "Argon" }, { p: 18, n: 18, e: 18, name: "Argon" },
-            // Z=19: Potassium
-            { p: 19, n: 20, e: 19, name: "Potassium" }, { p: 19, n: 20, e: 18, name: "Potassium" },
-            // Z=20: Calcium
-            { p: 20, n: 20, e: 20, name: "Calcium" }, { p: 20, n: 24, e: 18, name: "Calcium" },
-            // Z=21: Scandium
-            { p: 21, n: 24, e: 21, name: "Scandium" }, { p: 21, n: 24, e: 18, name: "Scandium" },
-            // Z=22: Titanium
-            { p: 22, n: 26, e: 22, name: "Titanium" }, { p: 22, n: 28, e: 22, name: "Titanium" },
-            // Z=23: Vanadium
-            { p: 23, n: 28, e: 23, name: "Vanadium" }, { p: 23, n: 27, e: 23, name: "Vanadium" },
-            // Z=24: Chromium
-            { p: 24, n: 28, e: 24, name: "Chromium" }, { p: 24, n: 26, e: 24, name: "Chromium" },
-            // Z=25: Manganese
-            { p: 25, n: 30, e: 25, name: "Manganese" }, { p: 25, n: 29, e: 25, name: "Manganese" },
-            // Z=26: Iron
-            { p: 26, n: 30, e: 26, name: "Iron" }, { p: 26, n: 28, e: 26, name: "Iron" },
-            // Z=27: Cobalt
-            { p: 27, n: 32, e: 27, name: "Cobalt" }, { p: 27, n: 33, e: 27, name: "Cobalt" },
-            // Z=28: Nickel
-            { p: 28, n: 30, e: 28, name: "Nickel" }, { p: 28, n: 32, e: 28, name: "Nickel" },
-            // Z=29: Copper
-            { p: 29, n: 34, e: 29, name: "Copper" }, { p: 29, n: 36, e: 29, name: "Copper" },
-            // Z=30: Zinc
-            { p: 30, n: 35, e: 30, name: "Zinc" }, { p: 30, n: 34, e: 30, name: "Zinc" },
-            // Z=31: Gallium
-            { p: 31, n: 38, e: 31, name: "Gallium" }, { p: 31, n: 40, e: 31, name: "Gallium" },
-            // Z=32: Germanium
-            { p: 32, n: 40, e: 32, name: "Germanium" }, { p: 32, n: 42, e: 32, name: "Germanium" },
-            // Z=33: Arsenic
-            { p: 33, n: 42, e: 33, name: "Arsenic" }, { p: 33, n: 41, e: 33, name: "Arsenic" },
-            // Z=34: Selenium
-            { p: 34, n: 45, e: 34, name: "Selenium" }, { p: 34, n: 46, e: 34, name: "Selenium" },
-            // Z=35: Bromine
-            { p: 35, n: 44, e: 35, name: "Bromine" }, { p: 35, n: 46, e: 36, name: "Bromine" },
-            // Z=36: Krypton
-            { p: 36, n: 48, e: 36, name: "Krypton" }, { p: 36, n: 50, e: 36, name: "Krypton" },
-            // Z=37: Rubidium
-            { p: 37, n: 48, e: 37, name: "Rubidium" }, { p: 37, n: 50, e: 37, name: "Rubidium" },
-            // Z=38: Strontium
-            { p: 38, n: 50, e: 38, name: "Strontium" }, { p: 38, n: 52, e: 38, name: "Strontium" },
-            // Z=39: Yttrium
-            { p: 39, n: 50, e: 39, name: "Yttrium" }, { p: 39, n: 51, e: 39, name: "Yttrium" },
-            // Z=40: Zirconium
-            { p: 40, n: 50, e: 40, name: "Zirconium" }, { p: 40, n: 51, e: 40, name: "Zirconium" },
-            // Z=53: Iodine
-            { p: 53, n: 74, e: 54, name: "Iodine" }, { p: 53, n: 72, e: 53, name: "Iodine" },
-            // Z=56: Barium
-            { p: 56, n: 82, e: 56, name: "Barium" }, { p: 56, n: 81, e: 54, name: "Barium" },
-            // Z=80: Mercury
-            { p: 80, n: 120, e: 80, name: "Mercury" }, { p: 80, n: 122, e: 80, name: "Mercury" },
-            // Z=82: Lead
-            { p: 82, n: 126, e: 82, name: "Lead" }, { p: 82, n: 124, e: 82, name: "Lead" }
-        ];
 
         let atom = { protons: 0, neutrons: 0, electrons: 0 };
         let mode = 'explore';
         let challenge = null;
-
+        let stats = { solved: 0, streak: 0 };
         let nucleonPositions = [];
 
         const canvas = document.getElementById('atomCanvas');
@@ -374,6 +307,8 @@
             document.getElementById('challenge-badge').classList.toggle('hidden', mode === 'explore');
             document.getElementById('challenge-type-desc').classList.toggle('hidden', mode === 'explore');
             document.getElementById('check-answer-btn').classList.toggle('hidden', mode === 'explore');
+            document.getElementById('score-container').classList.toggle('hidden', mode === 'explore');
+            document.getElementById('skip-btn').classList.toggle('hidden', mode === 'explore');
             
             const canvasEl = document.getElementById('atomCanvas');
             const focusArea = document.getElementById('challenge-focus-area');
@@ -416,44 +351,68 @@
             const instructions = document.getElementById('instruction-text');
             
             if (type === 1) {
-                goal.innerText = "Nuclear Notation Decoding: Identify name and counts.";
-                instructions.innerText = "Use the symbol on the left to determine the number of protons, neutrons, and electrons.";
+                goal.innerText = "Nuclear Notation Decoding: Identify name and counts from the symbol.";
+                instructions.innerText = "Use the nuclear symbol shown in the panel to fill out all the empty fields in the data table.";
             } else {
-                goal.innerText = "Atomic Reconstruction: Build notation from table clues.";
-                instructions.innerText = "Use the clues in the table to reconstruct the full identity and symbol of the atom.";
+                goal.innerText = "Atomic Reconstruction: Create the nuclear symbol from clues.";
+                instructions.innerText = "Observe the limited data provided in the table, then reconstruct the complete nuclear symbol in the panel.";
             }
 
             initInterfaceForChallenge();
             updateStaticUI();
         }
 
+        function skipChallenge() {
+            stats.streak = 0;
+            updateScoreUI();
+            generateChallenge();
+        }
+
+        function updateScoreUI() {
+            document.getElementById('stat-solved').innerText = stats.solved;
+            document.getElementById('stat-streak').innerText = stats.streak;
+            const streakEl = document.getElementById('stat-streak');
+            if (stats.streak >= 5) {
+                streakEl.className = "text-xl font-black leading-none text-yellow-400 animate-pulse";
+            } else if (stats.streak > 0) {
+                streakEl.className = "text-xl font-black leading-none text-orange-400";
+            } else {
+                streakEl.className = "text-xl font-black leading-none text-slate-400";
+            }
+        }
+
         function initInterfaceForChallenge() {
-            const isoDisplayArea = document.getElementById('isotope-display-area');
             const symMass = document.getElementById('sym-mass-container');
             const symAtomic = document.getElementById('sym-atomic-container');
             const symSymbol = document.getElementById('sym-symbol-container');
             const symCharge = document.getElementById('sym-charge-container');
             const tableRow = document.getElementById('analysis-row');
 
-            const input = (id, placeholder, width = 'w-full') => `<input type="text" id="${id}" placeholder="${placeholder}" class="challenge-input ${width} px-0.5">`;
+            const inputWrap = (id, placeholder, width = 'w-full') => `
+                <div id="wrap-${id}" class="input-wrapper ${width}">
+                    <input type="text" id="${id}" placeholder="${placeholder}" class="challenge-input">
+                </div>`;
 
             const chargeVal = challenge.p - challenge.e;
-            const chargeStr = chargeVal === 0 ? "0" : (chargeVal > 0 ? `+${chargeVal}` : chargeVal);
+            const chargeStr = chargeVal === 0 ? "0" : (chargeVal > 0 ? `+${chargeVal}` : `${Math.abs(chargeVal)}-`);
             const ionNameStr = getIonName(challenge.target.symbol, challenge.target.name, chargeVal);
             const isotopeNotation = `${ionNameStr}-${challenge.p + challenge.n}`;
 
-            isoDisplayArea.innerHTML = ""; symMass.innerText = ""; symAtomic.innerText = ""; symSymbol.innerText = ""; symCharge.innerText = "";
+            [symMass, symAtomic, symSymbol, symCharge].forEach(el => {
+                el.innerHTML = ""; el.innerText = "";
+                el.classList.remove('cell-error', 'cell-warning');
+            });
 
             if (challenge.type === 2) { 
-                symMass.innerHTML = input('in-mass', 'A', 'w-6');
-                symAtomic.innerHTML = input('in-atomic', 'Z', 'w-6');
-                symSymbol.innerHTML = input('in-sym', 'Sym', 'w-10 h-8 text-base');
-                symCharge.innerHTML = input('in-chg', '+/-', 'w-6');
+                symMass.innerHTML = inputWrap('in-mass', 'A', 'w-16');
+                symAtomic.innerHTML = inputWrap('in-atomic', 'Z', 'w-16');
+                symSymbol.innerHTML = inputWrap('in-sym', 'Sym', 'w-20');
+                symCharge.innerHTML = inputWrap('in-chg', '+/-', 'w-14');
             } else { 
                 symMass.innerText = challenge.p + challenge.n;
                 symAtomic.innerText = challenge.p;
                 symSymbol.innerText = challenge.target.symbol;
-                symCharge.innerText = chargeStr;
+                symCharge.innerText = chargeVal === 0 ? "0" : (chargeVal > 0 ? `${chargeVal}+` : `${Math.abs(chargeVal)}-`);
             }
 
             const clues = [
@@ -475,23 +434,147 @@
                 chosenClues.push(massClues[Math.floor(Math.random() * massClues.length)]);
                 chosenClues.push(electronClues[Math.floor(Math.random() * electronClues.length)]);
             } else {
-                const potentialClues = clues.filter(c => c.id !== 'tbl-iso');
-                chosenClues.push(potentialClues[Math.floor(Math.random() * potentialClues.length)]);
+                chosenClues.push(clues.filter(c => c.id !== 'tbl-iso')[Math.floor(Math.random() * 6)]);
             }
             
             challenge.clues = chosenClues;
 
             const fields = [
-                { id: 'tbl-iso', ph: 'Name-A' }, { id: 'tbl-z', ph: 'Z' }, 
-                { id: 'tbl-a', ph: 'A' }, { id: 'tbl-charge', ph: '+/-' },
+                { id: 'tbl-iso', ph: 'Name-Mass' }, { id: 'tbl-z', ph: 'Z' }, 
+                { id: 'tbl-a', ph: 'Mass' }, { id: 'tbl-charge', ph: 'Chg' },
                 { id: 'tbl-p', ph: 'p+' }, { id: 'tbl-n', ph: 'n0' }, { id: 'tbl-e', ph: 'e-' }
             ];
 
             tableRow.innerHTML = fields.map(f => {
                 const clueMatch = (challenge.clues || []).find(c => c.id === f.id);
-                if (clueMatch) return `<td class="p-2 border border-slate-100 bg-slate-50 text-slate-400 text-sm">${clueMatch.val}</td>`;
-                return `<td class="p-2 border border-slate-100">${input('in-' + f.id, f.ph)}</td>`;
+                if (clueMatch) return `<td class="p-3 border border-slate-100 bg-slate-50 text-slate-400 text-sm font-bold italic">${clueMatch.val}</td>`;
+                return `<td id="cell-in-${f.id}" class="p-3 border border-slate-100 transition-colors duration-200">
+                    <input type="text" id="in-${f.id}" placeholder="${f.ph}" class="challenge-input">
+                </td>`;
             }).join('');
+        }
+
+        function parseFlexibleCharge(str) {
+            str = str.trim().toLowerCase();
+            if (str === "0" || str === "none" || str === "") return 0;
+            if (str === "+") return 1;
+            if (str === "-") return -1;
+            if (str === "1+") return 1;
+            if (str === "+1") return 1;
+            if (str === "1-") return -1;
+            if (str === "-1") return -1;
+            const match = str.match(/([+-])?(\d+)([+-])?/);
+            if (!match) return NaN;
+            const signPrefix = match[1];
+            const magnitude = parseInt(match[2]);
+            const signSuffix = match[3];
+            if (signPrefix === "-" || signSuffix === "-") return -magnitude;
+            if (signPrefix === "+" || signSuffix === "+") return magnitude;
+            return magnitude;
+        }
+
+        function checkCompletion() {
+            if (!challenge) return;
+            let overallCorrect = true;
+            let showIonWarning = false;
+            let capitalizationError = false;
+            
+            const targetP = challenge.p;
+            const targetN = challenge.n;
+            const targetE = challenge.e;
+            const targetZ = challenge.p;
+            const targetMass = challenge.p + challenge.n;
+            const targetChargeVal = challenge.p - challenge.e;
+            
+            const ionNameStr = getIonName(challenge.target.symbol, challenge.target.name, targetChargeVal);
+            const standardIonNotation = `${ionNameStr}-${targetMass}`;
+            const genericIonNotation = `${challenge.target.name} Ion-${targetMass}`;
+            const neutralNotation = `${challenge.target.name}-${targetMass}`;
+            
+            let acceptedIsoVariations = [standardIonNotation.toLowerCase(), genericIonNotation.toLowerCase()];
+            if (targetChargeVal === 0) acceptedIsoVariations = [neutralNotation.toLowerCase()];
+
+            const checks = [
+                { id: 'in-sym', type: 'symbol', target: challenge.target.symbol, parent: 'sym-symbol-container' },
+                { id: 'in-atomic', type: 'number', target: targetZ, parent: 'sym-atomic-container' },
+                { id: 'in-mass', type: 'number', target: targetMass, parent: 'sym-mass-container' },
+                { id: 'in-chg', type: 'charge', target: targetChargeVal, parent: 'sym-charge-container' },
+                { id: 'in-tbl-iso', type: 'text-list', target: acceptedIsoVariations, neutralVal: neutralNotation.toLowerCase(), parent: 'cell-in-tbl-iso' },
+                { id: 'in-tbl-z', type: 'number', target: targetZ, parent: 'cell-in-tbl-z' },
+                { id: 'in-tbl-p', type: 'number', target: targetP, parent: 'cell-in-tbl-p' },
+                { id: 'in-tbl-a', type: 'number', target: targetMass, parent: 'cell-in-tbl-a' },
+                { id: 'in-tbl-n', type: 'number', target: targetN, parent: 'cell-in-tbl-n' },
+                { id: 'in-tbl-charge', type: 'charge', target: targetChargeVal, parent: 'cell-in-tbl-charge' },
+                { id: 'in-tbl-e', type: 'number', target: targetE, parent: 'cell-in-tbl-e' }
+            ];
+
+            checks.forEach(c => {
+                const el = document.getElementById(c.id);
+                const parent = document.getElementById(c.parent);
+                if (el && parent) {
+                    const rawVal = el.value.trim();
+                    let match = false;
+                    let warning = false;
+
+                    switch(c.type) {
+                        case 'symbol':
+                            if (rawVal === c.target) match = true;
+                            else if (rawVal.toLowerCase() === c.target.toLowerCase()) { capitalizationError = true; }
+                            break;
+                        case 'number':
+                            match = parseInt(rawVal) === c.target;
+                            break;
+                        case 'charge':
+                            const parsed = parseFlexibleCharge(rawVal);
+                            match = parsed === c.target;
+                            break;
+                        case 'text-list':
+                            const inputLower = rawVal.toLowerCase();
+                            match = c.target.includes(inputLower);
+                            if (!match && c.neutralVal && targetChargeVal !== 0 && inputLower === c.neutralVal) {
+                                match = true; warning = true; showIonWarning = true;
+                            }
+                            break;
+                    }
+                    
+                    // Reset Classes to neutral by default
+                    el.classList.remove('input-correct', 'input-error', 'input-warning');
+                    parent.classList.remove('cell-correct', 'cell-error', 'cell-warning');
+
+                    if (match) {
+                        if (warning) {
+                            el.classList.add('input-warning');
+                            parent.classList.add('cell-warning');
+                        } else {
+                            // CORRECT - simply clear any error styling
+                            el.classList.add('input-correct');
+                        }
+                    } else {
+                        // INCORRECT - Apply the red shading
+                        el.classList.add('input-error');
+                        parent.classList.add('cell-error');
+                        overallCorrect = false;
+                    }
+                }
+            });
+
+            const feedback = document.getElementById('feedback-msg');
+            if (overallCorrect) {
+                feedback.innerHTML = showIonWarning ? 
+                    `<span class="text-amber-600">⚠️ Correct, but remember ions end in -ide or "ion"!</span>` : 
+                    `<span class="text-green-600">✨ EXCELLENT WORK!</span>`;
+                stats.solved++;
+                stats.streak++;
+                updateScoreUI();
+                document.getElementById('check-answer-btn').classList.add('hidden');
+                document.getElementById('next-challenge-btn').classList.remove('hidden');
+            } else {
+                stats.streak = 0;
+                updateScoreUI();
+                feedback.innerHTML = capitalizationError ? 
+                    `<span class="text-red-600">❌ Case error: Symbols must match Periodic Table (He, not he).</span>` : 
+                    `<span class="text-red-600">❌ Correction needed in red fields</span>`;
+            }
         }
 
         function updateStaticUI() {
@@ -504,215 +587,61 @@
                 const el = elements.find(e => e.z === z) || elements[0];
                 const mass = atom.protons + atom.neutrons;
                 const charge = atom.protons - atom.electrons;
-                const chargeStr = charge === 0 ? "0" : (charge > 0 ? `+${charge}` : charge);
+                const chargeStr = charge === 0 ? "0" : (charge > 0 ? `${charge}+` : `${Math.abs(charge)}-`);
                 const ionName = getIonName(el.symbol, el.name, charge);
 
                 document.getElementById('element-name').innerText = el.name;
-                document.getElementById('isotope-display-area').innerHTML = `<p class="text-xs font-bold text-slate-600">${z > 0 ? ionName + '-' + mass : 'None'}</p>`;
+                document.getElementById('isotope-display-area').innerHTML = `<p class="text-sm font-bold text-slate-600">${z > 0 ? ionName + '-' + mass : 'None'}</p>`;
                 document.getElementById('sym-mass-container').innerText = z > 0 ? mass : "0";
                 document.getElementById('sym-atomic-container').innerText = z > 0 ? z : "0";
                 document.getElementById('sym-symbol-container').innerText = z > 0 ? el.symbol : "?";
                 document.getElementById('sym-charge-container').innerText = (z > 0) ? (charge === 0 ? "0" : chargeStr) : "";
                 
                 const vals = [z > 0 ? `${ionName}-${mass}` : "None", z, mass, chargeStr, atom.protons, atom.neutrons, atom.electrons];
-                document.getElementById('analysis-row').innerHTML = vals.map(v => `<td class="p-2 border border-slate-100 text-base">${v}</td>`).join('');
+                document.getElementById('analysis-row').innerHTML = vals.map(v => `<td class="p-3 border border-slate-100 text-base">${v}</td>`).join('');
             } else {
-                document.getElementById('element-name').innerText = "Analysis Target";
-                document.getElementById('isotope-display-area').innerHTML = `<p class="text-[8px] font-black text-blue-500 uppercase">Input Required</p>`;
+                document.getElementById('element-name').innerText = "Target Identification";
+                document.getElementById('isotope-display-area').innerHTML = `<p class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Question ${stats.solved + 1}</p>`;
             }
-            
             syncNucleonPositions();
         }
 
         function syncNucleonPositions() {
             const totalNucleons = atom.protons + atom.neutrons;
-            const currentCount = nucleonPositions.length;
-
-            if (totalNucleons === 0) {
-                nucleonPositions = [];
-                return;
-            }
-
-            if (totalNucleons < currentCount) {
+            if (totalNucleons === 0) { nucleonPositions = []; return; }
+            if (totalNucleons < nucleonPositions.length) {
                 nucleonPositions = nucleonPositions.slice(0, totalNucleons);
-            } else if (totalNucleons > currentCount) {
-                for (let i = currentCount; i < totalNucleons; i++) {
+            } else if (totalNucleons > nucleonPositions.length) {
+                for (let i = nucleonPositions.length; i < totalNucleons; i++) {
                     const angle = Math.random() * Math.PI * 2;
                     const dist = 50 + Math.random() * 20;
-                    nucleonPositions.push({
-                        x: Math.cos(angle) * dist,
-                        y: Math.sin(angle) * dist,
-                        vx: 0,
-                        vy: 0
-                    });
+                    nucleonPositions.push({ x: Math.cos(angle) * dist, y: Math.sin(angle) * dist, vx: 0, vy: 0 });
                 }
             }
-
-            for (let i = 0; i < nucleonPositions.length; i++) {
-                nucleonPositions[i].type = i < atom.protons ? 'p' : 'n';
-            }
+            nucleonPositions.forEach((n, i) => n.type = i < atom.protons ? 'p' : 'n');
         }
 
         function updateNucleusPhysics() {
             const spacing = nucleonPositions.length > 60 ? 11 : (nucleonPositions.length > 30 ? 14 : 19);
-            const spring = 0.08;
-            const friction = 0.85;
-
-            for (let i = 0; i < nucleonPositions.length; i++) {
-                const n1 = nucleonPositions[i];
-                const dxCenter = -n1.x;
-                const dyCenter = -n1.y;
-                n1.vx += dxCenter * 0.01;
-                n1.vy += dyCenter * 0.01;
-
+            const spring = 0.08, friction = 0.85;
+            nucleonPositions.forEach((n1, i) => {
+                n1.vx += -n1.x * 0.01; n1.vy += -n1.y * 0.01;
                 for (let j = i + 1; j < nucleonPositions.length; j++) {
-                    const n2 = nucleonPositions[j];
-                    const dx = n2.x - n1.x;
-                    const dy = n2.y - n1.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    const minDist = spacing;
-
-                    if (dist < minDist) {
-                        const angle = Math.atan2(dy, dx);
-                        const targetX = n1.x + Math.cos(angle) * minDist;
-                        const targetY = n1.y + Math.sin(angle) * minDist;
-                        const ax = (targetX - n2.x) * spring;
-                        const ay = (targetY - n2.y) * spring;
-                        n1.vx -= ax;
-                        n1.vy -= ay;
-                        n2.vx += ax;
-                        n2.vy += ay;
+                    const n2 = nucleonPositions[j], dx = n2.x - n1.x, dy = n2.y - n1.y, dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < spacing) {
+                        const angle = Math.atan2(dy, dx), targetX = n1.x + Math.cos(angle) * spacing, targetY = n1.y + Math.sin(angle) * spacing;
+                        const ax = (targetX - n2.x) * spring, ay = (targetY - n2.y) * spring;
+                        n1.vx -= ax; n1.vy -= ay; n2.vx += ax; n2.vy += ay;
                     }
                 }
-
-                n1.vx *= friction;
-                n1.vy *= friction;
-                n1.x += n1.vx;
-                n1.y += n1.vy;
-            }
-        }
-
-        function addParticle(type) {
-            if (mode === 'challenge') return;
-            if (type === 'proton') atom.protons = Math.min(36, atom.protons + 1);
-            if (type === 'neutron') atom.neutrons = Math.min(130, atom.neutrons + 1);
-            if (type === 'electron') atom.electrons = Math.min(82, atom.electrons + 1);
-            updateStaticUI();
-        }
-
-        function removeParticle(type) {
-            if (mode === 'challenge') return;
-            if (type === 'proton') atom.protons = Math.max(0, atom.protons - 1);
-            if (type === 'neutron') atom.neutrons = Math.max(0, atom.neutrons - 1);
-            if (type === 'electron') atom.electrons = Math.max(0, atom.electrons - 1);
-            updateStaticUI();
-        }
-
-        function checkCompletion() {
-            if (!challenge) return;
-            let overallCorrect = true;
-            let showIonWarning = false;
-            let capitalizationError = false;
-            
-            const totalMass = challenge.p + challenge.n;
-            const targetChargeVal = challenge.p - challenge.e;
-            const targetCharge = targetChargeVal === 0 ? "0" : (targetChargeVal > 0 ? "+" + targetChargeVal : targetChargeVal.toString());
-            
-            const ionNameStr = getIonName(challenge.target.symbol, challenge.target.name, targetChargeVal);
-            const standardIonNotation = `${ionNameStr}-${totalMass}`;
-            const genericIonNotation = `${challenge.target.name} Ion-${totalMass}`;
-            const neutralNotation = `${challenge.target.name}-${totalMass}`;
-            
-            let acceptedIsoVariations = [standardIonNotation.toLowerCase(), genericIonNotation.toLowerCase()];
-            if (targetChargeVal === 0) {
-                acceptedIsoVariations = [neutralNotation.toLowerCase()];
-            }
-
-            const checks = [
-                { id: 'in-sym', val: challenge.target.symbol, isSymbol: true },
-                { id: 'in-atomic', val: challenge.p },
-                { id: 'in-mass', val: totalMass },
-                { id: 'in-chg', val: targetChargeVal === 0 ? ["0", "", "none"] : targetCharge },
-                { id: 'in-tbl-iso', val: acceptedIsoVariations, neutralVal: neutralNotation.toLowerCase() },
-                { id: 'in-tbl-z', val: challenge.p },
-                { id: 'in-tbl-p', val: challenge.p },
-                { id: 'in-tbl-a', val: totalMass },
-                { id: 'in-tbl-n', val: challenge.n },
-                { id: 'in-tbl-charge', val: targetCharge },
-                { id: 'in-tbl-e', val: challenge.e }
-            ];
-
-            checks.forEach(c => {
-                const el = document.getElementById(c.id);
-                if (el) {
-                    const rawVal = el.value.trim();
-                    const inputVal = rawVal.toLowerCase();
-                    let match = false;
-                    let warning = false;
-
-                    // Specific check for symbol capitalization
-                    if (c.isSymbol) {
-                        if (rawVal === c.val) {
-                            match = true;
-                        } else if (inputVal === c.val.toLowerCase()) {
-                            match = false;
-                            capitalizationError = true;
-                        }
-                    } else if (Array.isArray(c.val)) {
-                        match = c.val.map(v => v.toString().toLowerCase()).includes(inputVal);
-                        if (!match && c.neutralVal && targetChargeVal !== 0 && inputVal === c.neutralVal) {
-                            match = true; 
-                            warning = true;
-                            showIonWarning = true;
-                        }
-                    } else {
-                        match = inputVal === c.val.toString().toLowerCase();
-                    }
-                    
-                    el.classList.remove('input-correct', 'input-error', 'input-warning');
-                    if (match) {
-                        el.classList.add(warning ? 'input-warning' : 'input-correct');
-                    } else {
-                        el.classList.add('input-error');
-                        overallCorrect = false;
-                    }
-                }
+                n1.vx *= friction; n1.vy *= friction; n1.x += n1.vx; n1.y += n1.vy;
             });
-
-            const feedback = document.getElementById('feedback-msg');
-            if (overallCorrect) {
-                if (showIonWarning) {
-                    feedback.innerHTML = `<span class="text-amber-600">⚠️ Almost! Ion name "${standardIonNotation}" is more correct.</span>`;
-                } else {
-                    feedback.innerHTML = `<span class="text-green-600">✨ PERFECT!</span>`;
-                }
-                document.getElementById('check-answer-btn').classList.add('hidden');
-                document.getElementById('next-challenge-btn').classList.remove('hidden');
-            } else {
-                if (capitalizationError) {
-                    feedback.innerHTML = `<span class="text-red-600">❌ Incorrect capitalization on the symbol.</span>`;
-                } else {
-                    feedback.innerHTML = `<span class="text-red-600">❌ Check highlighted fields.</span>`;
-                }
-            }
         }
 
-        function resetAtom() {
-            if (mode === 'challenge') {
-                initInterfaceForChallenge();
-                clearFeedback();
-                document.getElementById('check-answer-btn').classList.remove('hidden');
-                document.getElementById('next-challenge-btn').classList.add('hidden');
-            } else {
-                atom = { protons: 0, neutrons: 0, electrons: 0 };
-            }
-            updateStaticUI();
-        }
-
-        function clearFeedback() {
-            document.getElementById('feedback-msg').innerHTML = "";
-        }
-
+        function addParticle(type) { if (mode === 'challenge') return; if (type === 'proton') atom.protons = Math.min(82, atom.protons + 1); if (type === 'neutron') atom.neutrons = Math.min(130, atom.neutrons + 1); if (type === 'electron') atom.electrons = Math.min(82, atom.electrons + 1); updateStaticUI(); }
+        function removeParticle(type) { if (mode === 'challenge') return; if (type === 'proton') atom.protons = Math.max(0, atom.protons - 1); if (type === 'neutron') atom.neutrons = Math.max(0, atom.neutrons - 1); if (type === 'electron') atom.electrons = Math.max(0, atom.electrons - 1); updateStaticUI(); }
+        function resetAtom() { if (mode === 'challenge') { initInterfaceForChallenge(); clearFeedback(); document.getElementById('check-answer-btn').classList.remove('hidden'); document.getElementById('next-challenge-btn').classList.add('hidden'); } else { atom = { protons: 0, neutrons: 0, electrons: 0 }; } updateStaticUI(); }
+        function clearFeedback() { document.getElementById('feedback-msg').innerHTML = ""; }
         function drag(ev, type) { if (mode === 'challenge') { ev.preventDefault(); return; } ev.dataTransfer.setData("type", type); }
         function allowDrop(ev) { ev.preventDefault(); }
         function drop(ev) { ev.preventDefault(); if (mode === 'challenge') return; addParticle(ev.dataTransfer.getData("type")); }
@@ -721,40 +650,20 @@
             if (mode === 'challenge') return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1; ctx.setLineDash([5, 5]);
-            const radii = [70, 115, 170, 240]; 
-            radii.forEach(r => { ctx.beginPath(); ctx.arc(centerX, centerY, r, 0, Math.PI * 2); ctx.stroke(); });
+            [70, 115, 170, 240].forEach(r => { ctx.beginPath(); ctx.arc(centerX, centerY, r, 0, Math.PI * 2); ctx.stroke(); });
             ctx.setLineDash([]); ctx.fillStyle = 'rgba(226, 232, 240, 0.2)';
             ctx.beginPath(); ctx.arc(centerX, centerY, 45, 0, Math.PI * 2); ctx.fill();
-
             updateNucleusPhysics();
-            const nucleons = atom.protons + atom.neutrons;
-            const pRadius = nucleons > 60 ? 6 : (nucleons > 30 ? 8 : 11); 
-
-            nucleonPositions.forEach(n => {
-                const color = n.type === 'p' ? '#ef4444' : '#94a3b8';
-                const label = n.type === 'p' ? '+' : 'n';
-                drawP(centerX + n.x, centerY + n.y, color, pRadius, label);
-            });
-
-            let shell1 = 0, shell2 = 0, shell3 = 0, shell4 = 0;
-            let rem = atom.electrons;
-
-            shell1 = Math.min(rem, 2);
-            rem -= shell1;
+            const pRadius = nucleonPositions.length > 60 ? 6 : (nucleonPositions.length > 30 ? 8 : 11); 
+            nucleonPositions.forEach(n => drawP(centerX + n.x, centerY + n.y, n.type === 'p' ? '#ef4444' : '#94a3b8', pRadius, n.type === 'p' ? '+' : 'n'));
+            let shell1 = 0, shell2 = 0, shell3 = 0, shell4 = 0, rem = atom.electrons;
+            shell1 = Math.min(rem, 2); rem -= shell1;
             if (rem > 0) { shell2 = Math.min(rem, 8); rem -= shell2; }
             if (rem > 0) { let f8 = Math.min(rem, 8); shell3 += f8; rem -= f8; }
             if (rem > 0) { let f2 = Math.min(rem, 2); shell4 += f2; rem -= f2; }
-            if (rem > 0) { let b3 = Math.min(rem, 10); shell3 += b3; rem -= b3; }
+            if (rem > 0) { let b10 = Math.min(rem, 10); shell3 += b10; rem -= b10; }
             if (rem > 0) { shell4 += rem; rem = 0; }
-
-            const shellData = [
-                { count: shell1, r: radii[0] },
-                { count: shell2, r: radii[1] },
-                { count: shell3, r: radii[2] },
-                { count: shell4, r: radii[3] }
-            ];
-
-            shellData.forEach((s, sIdx) => {
+            [{ count: shell1, r: 70 }, { count: shell2, r: 115 }, { count: shell3, r: 170 }, { count: shell4, r: 240 }].forEach((s, sIdx) => {
                 for (let i = 0; i < s.count; i++) {
                     const angle = (i / s.count) * Math.PI * 2 + (Date.now() / (1500 + sIdx * 500));
                     drawP(centerX + Math.cos(angle) * s.r, centerY + Math.sin(angle) * s.r, '#60a5fa', 7, '-');
@@ -764,7 +673,7 @@
 
         function drawP(x, y, c, s, l) {
             ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI*2); ctx.fillStyle = c; ctx.fill();
-            ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 1; ctx.stroke();
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.stroke();
             ctx.fillStyle = 'white'; ctx.font = `bold ${s}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(l, x, y);
         }
 
